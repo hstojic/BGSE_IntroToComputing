@@ -1,0 +1,10 @@
+# folders
+sensitive
+handouts
+other
+play
+
+# files
+*out
+*.doc
+*.pdf
