@@ -1,0 +1,951 @@
+---
+title: "Computing 4 - Basic analysis & Other topics"
+author: "Hrvoje Stojic"
+date: "September 15, 2017"
+output: 
+  html_document:
+    theme: united
+    highlight: kate
+    md_extensions:  +raw_tex+multiline_tables
+    toc: true
+    toc_depth: 2
+  rmarkdown::tufte_handout:
+    keep_tex: false
+    highlight: kate
+    md_extensions:  +raw_tex+multiline_tables
+  tufterhandout::html_tufte_handout:
+    keep_md: false
+    theme: united
+    highlight: kate
+    md_extensions:  +raw_tex+multiline_tables
+    toc: true
+    toc_depth: 2
+  pdf_document:
+    fig_caption: no
+    highlight: kate
+    keep_tex: no
+    number_sections: yes
+fontsize: 12pt
+---
+
+
+```{r, knitr_options, include=TRUE, echo=FALSE}
+    
+    # loading in required packages
+    if (!require("knitr")) install.packages("knitr"); library(knitr)
+    if (!require("rmarkdown")) install.packages("rmarkdown"); library(rmarkdown)
+
+    # some useful global defaults
+    opts_chunk$set(warning=FALSE, message=FALSE, include=TRUE, echo=TRUE, 
+                   cache=TRUE, cache.comments=FALSE, comment='##',
+                   results="hold")
+
+    # output specific defaults
+    output <- opts_knit$get("rmarkdown.pandoc.to")
+    if (output=="html") opts_chunk$set(fig.width=10, fig.height=5)
+    if (output=="latex") opts_chunk$set(fig.width=6,  fig.height=4, 
+        dev = 'cairo_pdf', dev.args=list(family="Arial"))
+```
+
+
+```{r, Setup_and_Loading_Data, echo=FALSE}
+   
+    # cleaning before starting
+    # rm(list=ls())
+    # getwd()
+    # setwd("/home/hstojic/Teaching/BGSE_DS_ITC_2017/source")
+
+    # rmarkdown::render("session4_Rstats.Rmd", "rmarkdown::tufte_handout", clean=TRUE)
+    # rmarkdown::render("session4_Rstats.Rmd", "html_document", clean=TRUE)
+
+    # rmarkdown::render("session4_Rstats.Rmd", "tufterhandout::html_tufte_handout", clean=TRUE)
+    # rmarkdown::render("session4_Rstats.Rmd", "pdf_document", clean=TRUE)
+    
+```
+
+
+# Introduction
+
+The last handout gave an overview on importing data, the essentials of R plots, and handling text and dates. All these represent the first step in an project. In this handout we will cover the actual data analysis, but prior to performing any data analysis we need to go over few other concepts.
+
+
+# Arithmetics
+
+Arithmetics is important for variable transformations whenever you have numerical variables. Arithmetic operators available in R are also called binary operators. They work on both vectors and matrices. 
+
+-----------------------------------------
+Operator    Description
+----------  -----------------------------
+`+`         addition
+
+`-`         subtraction
+
+`*`         multiplication
+
+`/`         division
+
+`^ or **`   exponentiation
+
+`x %% y`    modulus (x mod y) 5%%2 is 1
+
+`x %/% y`   integer division 5%/%2 is 2 
+-----------------------------------------
+
+
+Matrices have a set of operators that are specific to matrix algebra. Matrix algebra is less important for data manipulation, but is very important for programming machine learning algorithms. There are many other functions for matrix algebra, such as `solve`, `diag`, `eigen` or `svd`, but here I listed the most basic ones.
+
+------------------------------------------------
+Operator           Description
+-----------------  -----------------------------
+`A * B `           Element-wise multiplication
+
+`A %*% B`          Matrix multiplication 
+
+`A %o% B`          Outer product, AB' 
+
+`crossprod(A,B)`   Cross product, A'B
+
+`t(A)`             Transpose
+------------------------------------------------
+
+
+
+```{r}
+y <- matrix(1:12, 3, 4)
+y 
+
+# some examples
+3 * y  # scalar-matrix operation
+3 / y 
+y / 3 
+y**3  # this is not a square of a matrix!
+3 + y  # this will work as well - BROADCASTING!
+
+# in vector-matrix operations, an atomic vector  
+# is treated as a row vector
+x <- 1:3
+x %*% y  # this is correct, [1 3] [3 4]
+#y %*% x  # this will produce an error [3 4] [1 3]
+
+# strangely, this would work as well
+x * y  # row-wise multiplication - BROADCASTING!
+```
+
+Note that matrix algebra in R does not strictly follow the rules of linear algebra, mostly due to its broadcasting feature.
+
+
+
+# The apply family of functions 
+
+In R it is usually advisable to vectorize your operations, i.e. performing operations to all elements of a vector (or other more general objects) instead of performing inefficient loop structures. Most R functions vectorize by default, for example the algebraic operations.
+
+```R
+c(1, 2, 3, 4, 5) + 5
+exp(c(1, 2, 3, 4, 5))
+```
+
+When programming your routines you too should think on applying a single operation to all elements at the same time (and not on element-by-element terms). The apply() functions are a natural way of using this philosophy, specially when manipulating data frames:
+
+```{r}
+# Summarizing columns
+apply(mtcars, MARGIN = 2, FUN = mean)
+apply(mtcars, MARGIN = 2, FUN = range)
+
+# Summarizing rows
+apply(mtcars, MARGIN = 1, FUN = mean)
+apply(mtcars, MARGIN = 1, FUN = range)
+
+# Custom functions 1: coefficient of variation
+apply(mtcars, MARGIN = 2, FUN = function(x) sd(x)/mean(x))
+
+# Custom functions 2: range
+apply(mtcars, MARGIN = 2, FUN = function(x) c(min(x),
+max(x)))
+```
+
+There are several variants to the `apply` function.
+
+```{r}
+# Summaryzing grouping by factors
+tapply(mtcars$hp, mtcars$cyl, mean)
+
+# Summarizing lists
+list <- list(a = 1:5, b = 6:20, c = 21:99)
+sapply(list, mean)
+lapply(list, mean)
+
+# Replicate vector operations
+replicate(5, rnorm(10))
+
+```
+
+**Practice** `apply` functions. Apply the `fivenum` function
+to 1) all the columns of `mtcars` , customizing the output row names; 2)
+the weight, grouping by number of carburetors.
+
+
+
+# Basic statistics
+
+Making sense out of large amounts of data is the everyday task of data scientists. You will often be confronted with the need to summarize thousands of observations into a simpler form a human brain understands, be it a table with just a few numbers or a pretty picture.
+
+You may need to do this for exploratory reasons: understanding the characteristics of your data is always key for success in subsequent analysis. You may need this for pedagogical reasons, say if you are to present your results to a manager or client. In this topic we review some of the most common techniques data scientists use to summarize their data and how to apply them in R. We also dip our toes into the waters of statistical inference by reviewing linear regression.
+
+
+## Graphics
+
+We have already seen graphics with `base` R, but I favor `ggplot2` package over `base` graphics that comes by defualt in R. In my opinion this package is easier to learn and you can generate stunning graphics with much fewer steps than with `base` R. 
+
+```{r}
+# install.packages("ggplot2")
+library(ggplot2)
+```
+
+As we go along showing how to generate various summary statistics we will illustrate the same data in graphical format with `ggplot2`.
+
+The most basic plotting function in this package is `qplot`, designed to be familiar if you are used to plot from the base package. Look online for a more extensive description by `ggplot2` creator Hadley Wickham. We will be just touching the surface of what you can do with `ggplot2`. Do yourself a favor and dig deep into the capabilities of this library.
+
+
+## Data
+
+You will need to install the package `hflights`, which contains data for all flights in 2011 departing from major Houston airports, IAH (George Bush Intercontinental) and HOU (Houston Hobby). Load the data by calling the package using the library function. Once you load the data you can use the head function to inspect the table.
+
+```{r}
+# install.packages("hflights")
+library(hflights)
+head(hflights)
+```
+
+## Frequency counts
+
+Counting how often an observation occurs is one of the most common operations you will need to perform. This is not only useful for descriptive purposes but very often you will need to save your results as a new table to operate on.
+
+The most straightforward way to do frequency counts in R is using the `table` function. Suppose we want to know how many flights departed from each airport:
+
+```{r}
+table(hflights$Origin)
+```
+
+You can also include other variables to obtain cross-tables. Suppose you want to find out how many cancellations occurred at each airport.
+
+```{r}
+table(hflights$Origin, hflights$Cancelled)
+```
+
+You can combine the table function with other R functions, for example to find out how many missing values there are for the variable `ActualElapsedTime`, which contains information about flight duration.
+
+```{r}
+table(is.na(hflights$ActualElapsedTime))
+```
+
+Say you need to create a table with frequency counts for each airline by airport and save it as a data frame called carrier_freq. You could use the function as.data.frame in combination with table.
+
+```{r}
+carrier_table <- as.data.frame(table(Origin = hflights$Origin,
+    UniqueCarrier = hflights$UniqueCarrier))
+head(carrier_table)
+```
+
+There are many alternative ways to do frequency counts in R; `xtabs` is very similar to `table` but incorporates the formula notation.
+
+```{r}
+carrier_xtabs <- as.data.frame(xtabs(~Origin +
+    UniqueCarrier, data = hflights))
+```
+
+
+
+## Bar plots
+
+Bar plots are an excellent way to display frequency counts and other statistics calculated by groups. There are two ways to plot things in `ggplot2` - at the moment we will focus on `qplot` function that resembles more the base R graphics which should be more familiar to you. To produce a bar plot with `qplot` we use the option `geom = "bar"`. `geom` specifies a layer that should be plotted and there can actually be more than one layer, as we will see later on.
+
+```{r, fig.margin=TRUE, fig.cap="Carrier frequency by airport of origin."}
+qplot(
+    data = hflights,    # data source
+    x = UniqueCarrier,  # column labels in x axis
+    fill = Origin,      # bar fill color
+    geom = "bar",       # bar plot!
+    position = "dodge"  # draw bars side-by-side
+)
+```
+
+
+**Practice** with `qplot`. Create a table that contains a ranking of carriers by percentage of flights with arrival delays (from lowest to highest), then draw a bar plot with these percentages. Can you order the bars from lowest to highest? Can you make the bars horizontal?
+
+
+## Centrality, extreme values, and dispersion measures
+
+Centrality measures, such as the mean, are another way to summarize numeric data. Conveniently, R provides a `mean` function that will let you quickly find the mean of any numeric variable, such as flight duration.
+
+```{r}
+mean(hflights$ActualElapsedTime)
+```
+
+Yikes! Something went wrong. Remember this variable has some missing values so the `mean` function returns a missing value too. We have to tell mean to ignore missing values using the `na.rm` option.
+
+```{r}
+mean(hflights$ActualElapsedTime, na.rm = TRUE)
+```
+
+The mean can often be affected by extreme observations (outliers), so you may want to use a more robust measure such as the median.
+
+```{r}
+median(hflights$ActualElapsedTime, na.rm = TRUE)
+```
+
+Recall the median is the value separating the higher half of your observations from the lower half. But often, you want to find out the value that defines the top quartile or the top 1% of your data. The quantile function will be helpful in such cases.
+
+```{r}
+quantile(hflights$ActualElapsedTime, 
+         c(0.01, 0.25, 0.5, 0.75, 0.99), na.rm = TRUE)
+```
+
+Sometimes you want to perform the reverse operation. Say, what percentage of all flights departing from IAH are shorter than 60 minutes? The empirical conditional distribution function, `ecdf` is what you need. This function creates another function you can use to find out the answer (remember closures?).
+
+```{r}
+fdur_ecdf <- ecdf(hflights$ActualElapsedTime)
+fdur_ecdf(60)
+```
+
+Quite often you want to find out what are the maximum and minimum values in your data. This is easily achieved with the max and min functions.
+
+```{r}
+max(hflights$ActualElapsedTime, na.rm = TRUE)
+min(hflights$ActualElapsedTime, na.rm = TRUE)
+```
+
+But what if you want to have a more complete picture of a variable without calling six or seven functions every time? The summary function is a handy way to get the most important statistics all at once.
+
+```{r}
+summary(hflights$ActualElapsedTime)
+```
+
+Finally, you may also want to find out what is the most common value in your data, the mode.^[There is a `mode` function, but it does something else than you would expect.] For some reason base R does not have a mode function but you can easily program your own.
+
+```{r}
+Mode <- function(x) {
+    ux <- unique(x[!is.na(x)])
+    ux[which.max(tabulate(match(x, ux)))]
+}
+Mode(hflights$ActualElapsedTime)
+```
+
+The mode will work with both numeric and categorical data.
+
+```{r}
+Mode(hflights$UniqueCarrier)
+```
+
+
+## Box-and-whisker plots
+
+Box-and-whisker plots summarize many of the statistics discussed above into a single figure. The upper and lower hinges of the box correspond to the first and third quartiles (the 25th and 75th percentiles). The upper whisker extends from the hinge to the highest value that is within 1.5 * IQR of the hinge. The lower whisker extends from the hinge to the lowest value within 1.5 * IQR of the hinge. Data beyond the end of the whiskers are considered outliers and plotted as points. To produce a box-and-whisker plot with `qplot` we use the
+option `geom = "boxplot"`.
+
+```{r, fig.margin=TRUE, fig.cap="Flight duration by airport of origin."}
+qplot(
+    data = hflights,        # data source
+    x = Origin,             # x axis variable
+    y = ActualElapsedTime,  # y axis variable
+    geom = "boxplot"        # make a box plot!
+)
+```
+
+## Dispersion
+
+Besides centrality, you often want to have an idea of how much variability is in your data; that's what dispersion measures are for. The most common of these are the variance and its squared root, the standard deviation, which you obtain in R with the `var` and `sd` functions.
+
+```{r}
+var(hflights$ActualElapsedTime, na.rm = TRUE)
+sd(hflights$ActualElapsedTime, na.rm = TRUE)
+```
+
+Another common measure of dispersion is the interquartile range, `IQR`, which gives you the distance between the 25% and 75% quantiles of your variable.
+
+```{r}
+IQR(hflights$ActualElapsedTime, na.rm = TRUE)
+```
+
+**Practice**. Compare carriers by centrality and dispersion of flight duration using boxplots.
+
+
+## By-group processing
+
+Describing segments of your data and comparing them is another common task you will encounter. This is called by-group processing. Segments should be defined by one or more of the variables in your dataset (not ones you wish to describe).
+
+Of course you could just apply the functions discussed above (or any others) to subsets of your data that you select manually, but that is not very practical or elegant. Say you wanted to calculate average flight duration for each carrier. There are 15 carriers in the data; you don't want to call the mean function 15 times! Writing a loop that does this would also be terribly inefficient.
+
+R has options for efficient by-group processing, for instance using `tapply`.
+
+```{r}
+tapply(hflights$ActualElapsedTime, hflights$UniqueCarrier,
+       FUN = mean, na.rm = TRUE)
+```
+
+You can use more than one variable to define your groups. Say you want to know the average departure delay by airport and day of week.
+
+```{r}
+tapply(hflights$DepDelay, list(hflights$Origin,
+       hflights$DayOfWeek), FUN = mean, na.rm = TRUE)
+```
+
+There are other, even more powerful ways to do this in R, especially when dealing with bigger data. But we leave those for the next topic.
+
+
+## Histograms
+
+A histogram is a useful graphic technique to visualize the distribution of a variable. In the following figure we compare the dispersion in taxi-out time (from gate to take-off) by airport.
+
+```{r, fig.margin=TRUE, fig.cap="Taxi-out time by airport"}
+hist_data <- hflights[hflights$TaxiOut <= 30 & 
+                      !is.na(hflights$TaxiOut),]
+
+qplot(
+    data = hist_data,    # data source
+    x = TaxiOut,         # x variable
+    facets = Origin ~ ., # define grid y ~ x
+    geom = "histogram",
+    binwidth = 1         # bin width
+)
+```
+
+To produce a histogram with `qplot` we use the option `geom = "histogram"`. Note the use of the facets option to create a grid of figures corresponding to each group and the binwidth option to control the width of each bar. Both the mean and dispersion appear to be much greater at IAH than HOU.
+
+
+**Practice**. Create a table with percentage of canceled flights by month for each carrier. Paint the results using a point-and-line plot using different colors for each carrier. Do you see any patterns? Paint each airport of origin in a separate panel. Can you explain the outliers in May and August?
+
+
+## Correlation and linear regression
+
+The relationship between two or more variables is our final topic for this session. Scatter plots are a useful to illustrate relationships between continuous variables. For instance, you would think that departure delays should affect arrival delays. Let's plot both variables together to see if we're right.
+
+```{r, fig.margin=TRUE, fig.cap="Relationship between departure and arrival delays during January"}
+hflights_jan <- hflights[hflights$Month == 1,]
+qplot(
+    data = hflights_jan,    # data source
+    x = DepDelay,           # x var
+    y = ArrDelay,           # y var
+    geom = "point"          # make scatterplot!
+)
+```
+
+To produce a scatter plot with `qplot` we use the option `geom = "point"`. It looks like our intuition was right, longer delays in departure generally produce longer delays in arrival (surprise!).
+
+Correlation lets us quantify the degree of association between two variables like in the picture above. It takes values between -1 (perfect negative correlation) and 1 (perfect positive correlation). A value of 0 means no correlation between the variables. With the function `cor` in R we can easily compute this measure.
+
+```{r}
+cor(hflights$DepDelay, hflights$ArrDelay, use = "complete.obs")
+``` 
+
+Say we want to uncover a relationship between two variables x and
+y of the form y = a + bx. Linear regression refers to a statistical
+technique that estimates coefficients a and b from a data sample such
+that the sum of squared differences between predicted values and
+real values of y is minimized 11 .
+The function lm in R allows us to estimate linear regression mod-
+els. Its main input is an R formula of the form y ~ x .
+
+```{r}
+mod <- lm(ArrDelay ~ DepDelay, data = hflights)
+mod
+```
+
+Instead of using the `qplot` function for plotting we will see how to create plots through a chain of plot components. This syntax is much clearer, it is easier to debug and allows for more detailed specification of each component. `ggplot` has an amazing documentation with many example, check it out!^[[docs.ggplot2.org/current/](http://docs.ggplot2.org/current/)]
+
+```{r, fig.fullwidth=TRUE, fig.cap="A bit more customized ggplot."}
+ggplot(data = hflights_jan,  
+       aes(x = DepDelay, y = ArrDelay, color=factor(Origin))) + 
+        
+geom_point(size = 2, alpha = 0.2) +  
+
+geom_smooth(method = "lm", size = 0.7,  
+            color = "darkred") +  
+
+scale_x_continuous("Departure delay",
+                   limits = c(-50, 400),  
+                   breaks = seq(-50, 400, 50)) + 
+
+scale_y_continuous("Arrival delay",
+                   limits = c(-50, 400),
+                   breaks = seq(-50, 400, 50)) +
+
+scale_colour_manual(name = "Airport in\nHouston", 
+                    values = c("forestgreen", "black")) + 
+
+annotate("text", x = 50, y = 350, size = 5,
+         label = paste0("Intercept =", round(mod$coefficients[1],2), 
+                        "\nSlope =", round(mod$coefficients[2],2))) +
+
+theme(panel.background = element_blank(),
+      legend.key = element_rect(fill="#FFFFFF"),
+      legend.title=element_text(size=12),
+      legend.text = element_text(size=12),
+      axis.line = element_line(colour = "darkgrey", size=0.5),
+      axis.text = element_text(size=12),
+      axis.ticks = element_line(size = 0.5), 
+      axis.title.y = element_text(vjust = 1.8, size=16),
+      axis.title.x = element_text(vjust = -.8, size=16))
+
+```
+
+The result is a straight line with intercept `a = -2.25` and slope `b = 0.99`. Note how we can combine the scatter plot with the regression line by passing a vector with the options point and smooth to the geom argument. 
+
+Regression between two variables is called univariate regression. More often than not, however, we are interested in relationships between multiple variables: multivariate regression. We can easily introduce new variables by adding terms to the formula in our call to the `lm` function. For example, we can add `Origin` to test if delays can be airport-related. We can test as well if delays are affected by `Distance`, since it is likely that airlines can more easily make-up for delayed departures on longer flights. To obtain more details we use the `summary` function as follows. Note how the summary function changes the output depending on the class of the input, in this case the class of `delay_mod` is `lm`.
+
+```{r}
+delay_mod <- lm(ArrDelay ~ DepDelay + Origin + Distance,
+                data = hflights)
+class(delay_mod)
+summary(delay_mod)
+```
+
+Indeed, it seems that flying from IAH adds on average 4.56 minutes of delay, while airlines can reduce delays by 0.003 minutes per trip mile. The column with p-values ( Pr(>|t|) ) indicates that all three variables are highly statistically significant. The R-squared statistic indicates that our model explains about 86% of the variation in arrival delay times. Hoorray!
+
+**Practice**. Find out if there is a statistically significant relationship between flight distance and aircraft speed. Do planes move faster or slower in long-distance flights? Do certain airlines seem to use faster planes? Use regression as well as graphical methods to justify your answer.
+
+
+
+# Data wrangling with `dplyr` and `tidyr`
+
+If you think data scientists spend most of their time running regressions and machine learning algorithms or generating stunning data visualizations, think again. That part usually comes only at the end of a laborious process of cleaning, transforming, and combining tables needed to get data ready for analysis, a process often referred to as data wrangling or data janitoring. Some people claim this kind of work can take up to 50-80% of a data scientist’s time.^[[nyti.ms/1t8IzfE](http://nyti.ms/1t8IzfE)]
+
+It is essential then to have the tools that make this janitor work as efficient as possible. For this session we will introduce you to some of these cutting edge tools, which will hopefully save you time writing code as well as processing it.
+
+We will again use the data of all flights departing from major Houston airports in 2011.
+
+
+# The dplyr package
+
+In my experience using R, there is a time before and after the discovery of this library developed by Hadley Wickham.
+
+```{r}
+library(dplyr)
+```
+
+Find our more about `dplyr`:
+
+```R
+vignette("introduction", package = "dplyr")
+```
+
+
+Getting quick summaries, broken according to certain groups perhaps, is surprisingly laborious in R. Moreover, syntax is such that there is a lot of clutter and execution is actually rather slow. `dplyr` syntax is extremely clean and more importantly, lots of code was written in low level languages to speed up the execution. As a result, you can do things with fewer lines of code than you would normally write in R, and the performance gains in sorting, subsetting, merging, and by-group processing are huge. Also, it connects really well with other useful packages developed by the same team, such as `tidyr`, `reshape` or `ggplot2`.^[An alternative package that has similar performance, but more difficult syntax (it corresponds less with the usual R syntax), is `data.table`.]
+
+**The tbl_df wrapper**. This optional but convenient wrapper for data frames will keep you from accidentally printing lots of data to the screen. In most cases when you use `dplyr` functions, your data frame will be first passed through this wrapper. If you really want to print the whole data frame, you can use the function `print.data.frame`.
+
+```{r}
+hflights_df <- tbl_df(hflights)
+hflights_df
+```
+
+## Sort and subset data
+
+`dplyr` functions correspond to the most common data manipulation verbs, so that you can easily translate your thoughts into code. To select certain rows from your table use the function `filter`.
+
+```{r}
+system.time(
+    dptest <- filter(hflights_df, Dest == "BPT")
+)
+dptest
+print.data.frame(dptest)
+``` 
+
+Compare it with the traditional R function and syntax. 
+
+```{r}
+system.time(
+    dptest2 <- hflights[hflights$Dest == "BPT",]
+)
+dptest2
+```  
+
+To select certain columns use the function `select`. 
+
+```{r}
+dptest <- select(dptest, UniqueCarrier, Origin,
+                 Dest, Year:DayofMonth)
+dptest
+```
+
+To sort your table according to the values of a variable use the
+function `arrange` . Use `desc` to sort in descending order.
+
+```{r}
+arrange(dptest, desc(Month), desc(DayofMonth))
+```
+
+
+## Modify and create new columns
+
+To add new columns that are functions of existing columns, use
+`mutate`.
+
+```{r}
+mutate(dptest, newVar = (Month + DayofMonth)/2 )
+```
+
+The same function also works to modify existing columns.
+
+```{r}
+mutate(dptest, Origin = tolower(Origin))
+```
+
+
+## Summarizing data
+
+One of the most useful functions is `summarize` that collapses a data frame to a single row.
+
+```{r}
+summarize(
+    hflights_df,
+    dep_delay = mean(DepDelay, na.rm = TRUE), 
+    arr_delay = mean(ArrDelay, na.rm = TRUE) 
+)
+```
+
+In `dplyr`, you use the `group_by` function to describe how to break a dataset down into groups of rows. You can then proceed to operate by group.
+
+```{r}
+origin_day <- group_by(hflights_df, Origin, DayOfWeek)
+delays <- summarize(origin_day,
+                    dep_delay = mean(DepDelay, na.rm = TRUE),
+                    arr_delay = mean(ArrDelay, na.rm = TRUE) 
+                    )
+delays
+```
+
+## Chaining operations
+
+Probably my favorite feature of the package is the `%>%` operator. Remeber piping operation from shell? This oeprator does exactly the same - it sends the result of one operation as the first argument to the next. This lets you perform multiple operations at once and the resulting code is very readable.^[The package `magrittr` that developed it actually implements this operator for any R function. Using it wisely may decrease development time and improve readability and maintainability of code.]
+
+For example, say we want to get a ranking of average departure delay times by carrier flying from IAH. You could do:
+
+```{r}
+exmpl <- hflights_df %>%  # data source
+    filter(Origin == "IAH") %>%  # subset rows
+    select(UniqueCarrier, DepDelay) %>%  # subset columns
+    group_by(UniqueCarrier) %>%  # group by carrier
+    summarize(dep_delay = 
+        round(mean(DepDelay, na.rm = TRUE),2)) %>% 
+    arrange(dep_delay)
+
+head(exmpl)
+```
+
+
+## Practice
+
+Create a table that contains the following information by carrier:
+
+- Percentage of flights with arrival delays.
+- Percentage of cancelled flights.
+- Average speed for short (< 3 hours) and medium-long haul flights (>= 3 hours).
+
+Try to do it with base R and do some performance comparisons that demonstrate the speed of the package. You can use `system.time` function, but also check `microbenchmark` package.
+
+
+
+# The tidyr package
+
+Reshaping data is another common data janitoring task. Currently, the best tools in R for this task come from Hadley Wickham's recent `tidyr` package. It follows a concept of **tidy data**, advocated by Wickham, which consists of a set of rules that should be followed when creating data sets. Having datasets in this format would facilitate data analysis and plotting, and decrease the amount of time spent on data wrangling.
+
+**Learn more** about the `tidyr` package and tidy data with the vignette. It is well worth reading the paper on tidy data by Hadley Wickham.^[Link to the paper: [jstatsoft.org/v59/i10/paper](http://www.jstatsoft.org/v59/i10/paper)]
+
+```R
+vignette("tidy-data", "tidyr")
+```
+
+This package focuses on reshaping **data frames**.^[For reshaping other classes of R objects see R base's `reshape` function or Wickham's previous reshaping packages `reshape` and `reshape2`.] To illustrate how it works, let's first create a table that has total flying time per month and tail number (aircraft ID) from January to March.
+
+```{r}
+library(tidyr)
+last_month <- 3
+fdur <- hflights_df %>%
+    filter(AirTime > 0 & Month %in% 1:last_month) %>% 
+    group_by(Month, TailNum) %>% 
+    summarize(total_airtime = round(sum(AirTime)))
+   
+print(fdur)
+```
+
+`fdur` has 5762 observations and 3 columns.
+
+
+## Wider data
+
+We say you make your data **wider** when you increase the number of columns and decrease the number of rows, while keeping information constant. Use the `spread` function to make data wider.
+
+```{r}
+fdur_wide <- spread(
+    fdur,         # table to make wider
+    Month,        # key defining columns
+    total_airtime # values to fill columns
+)
+names(fdur_wide)[2:4] <- 
+    paste0(month.abb[1:last_month],"-2011")
+
+print(fdur_wide)
+```
+
+`spread` has created a column for each month, the new table has 2515 observations and 4 columns. Note that if an aircraft has no records for a month, `spread` produces a missing value (NA).
+
+
+## Longer data
+
+We say you make your data **longer** whenever you reduce the number of columns and increase the number of rows in your data, while keeping the same amount of information. Use the `gather` function to make data longer.
+
+```{r}
+fdur_long <- gather(
+    fdur_wide,     # table to make longer
+    Month,         # new column of observation ids
+    total_airtime, # new column of observation values
+    -TailNum,      # exclude variable from gathering
+    na.rm = TRUE   # remove missing values
+)
+print(fdur_long)
+```
+
+`fdur_long` has the same number of records (5762) and columns (3) as the original table, `fdur`.
+
+
+## Separating
+
+This package has one additional function to split columns that contain two variables, a problem often encountered by data scientists. For instance, the column Month in the `fdur_long` table we just created actually has information for month and year and maybe we would like to separate this information into two different variables.
+
+```{r}
+separate(
+    fdur_long,  # data
+    Month,      # column to separate
+    into = c("Month", "Year"), # new columns
+    sep = "-"   # separating expression (regex)
+)
+```
+
+
+## Chaining operations
+
+If you load the `dplyr` package, then you can also use the `%>%` operator with `tidyr` and combine operations of both packages, for example
+
+```{r}
+fdur %>% filter(TailNum == "N0EGMQ") %>% 
+    spread(Month, total_airtime)
+```
+
+
+
+
+# Reproducibility and R-markdown
+
+
+R Markdown is a format that lets you easily create dynamic documents (like this one!) combining easy-to-write plain text format (minimally marked style called markdown^[Markdown was originally developed to support simple writing that is easy to convert to HTML and nowadays is a web standard. Check the creators website, it has nice overview of the markdown features - at [daringfireball.net/projects/markdown/](http://daringfireball.net/projects/markdown/). Another important piece of the puzzle is a command line tool called Pandoc. Exactly because of markdown simplicity, it is possible to convert it to many other formats, HTML, Word and pdf being only few of many. Check excellent Pandoc's website at [pandoc.org/](http://pandoc.org/).]) with chunks of R code that get re-run each time you compile the document. You can choose to print the code in these chunks, the output of your code, or both. It is powered by `knitr` and `rmarkdown` packages in R, and `Pandoc` command line tools.
+
+R markdown makes it really easy to produce documents using this format and turn them into **html**, **pdf**, or **word** documents. You can also make some really cool presentations.
+
+The RStudio folks have created a great website that will have you learn the basics in no-time so you can start creating reports and doing your homework using R Markdown.^[[rmarkdown.rstudio.com/](http://rmarkdown.rstudio.com/)] You can also start by examining the `.Rmd` files that I have used for creating these handouts.
+
+
+## Why you should be a fan of R markdown?
+
+- **Reproducibility**: 
+    - It makes your data analysis more reproducible. The R code describes exactly the steps from the raw data to the final report. This makes it perfect for sharing reports with your colleagues.   
+    - It is written with almost no formatting at all (markdown), which makes it easier to convert to any other format, from nicely looking PDFs to the all-present MS docx and complete HTML documents (fancy a blog?).     
+- **Efficiency**: 
+    - Statistical output from figures to tables is automatically placed in your report. No more copy-pasting and reformatting the output from your statistical analysis program into your report.  
+    - You want to use a slightly different subset of the data? You want to drop that outlier observation? No problem, you can update your report with a single click instead of updating every table and figure.  
+    - Whoever has done some copy-pasting knows how easy is to overlook one number or one figure. This type of document significantly reduces the chance of such errors.   
+- **Education & Communication**: 
+    - Excellent for teaching as one can check how exactly is some analysis done from the report.  
+    - Do not disregard this aspect, look at Github and Stackoverflow stars who get job offers on this account!  
+
+
+## A quick start
+
+RStudio has a great support for authoring documents in R markdown, with very neat collection of buttons that give you quick access to various outputs. Clicking on File > New File > R Markdown also provides a basic template.
+
+``````R
+---
+title: "Untitled"
+output: 
+  html_document: 
+    fig_caption: yes
+    highlight: pygments
+    keep_md: yes
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+---
+
+# A title 
+
+This is an R Markdown document. Markdown is a simple 
+formatting syntax for authoring HTML, PDF, and MS Word 
+documents. 
+
+You can embed an R code chunk within the text like this: 
+`r paste0("some result =", 1+1)`, and a chunk that would 
+produce a standalone result like this:
+
+```{r}
+summary(cars)
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to 
+the code chunk to prevent printing of the R code that 
+generated the plot.
+``````
+
+How to render files if you are not using RStudio? Navigate to a folder with `.Rmd` file and
+
+```R
+rmarkdown::render("input.Rmd")
+rmarkdown::render("input.Rmd", "pdf_document")
+```
+
+
+
+# Debugging
+
+
+Identifying and correcting code bugs is quite common, even for experienced programmers. Debugging a series of separated code chunks may be easy - just execute each chunk and identify the line that has the error. But debugging functions and loops may be difficult, so we need some tools to make it easier.
+
+
+## Old-school debugging
+
+The most immediate way of debugging a function or loop is printing out to the console some information of the process. The `print` function outputs into the console once a process is executed. As an alternative to `print` you can use `cat` function, however `cat` cannot easily handle some types of outputs, such as matrices etc.
+
+```R
+cumSum <- 0
+for (iteration in 1:10) {
+    cumSum <- cumSum + iteration
+    print(paste("Iteration ", iteration, 
+          ". Cumulative sum: ", cumSum), 
+          sep = "")
+}
+```
+
+## Built-in R and RStudio utilities
+
+R has a built-in facility for single stepping through R functions, and for examining variables during execution.^[Debugging in R using `debug` ,
+`browser` and `trace` functions [http://www.stats.uwo.ca/faculty/murdoch/software/debuggingR/](http://www.stats.uwo.ca/faculty/murdoch/software/debuggingR/)]
+
+RStudio includes a visual debugger that can help you understand the code and find bugs.^[Debugging with RStudio: [https://support.rstudio.com/hc/en-us/articles/205612627-Debugging-with-RStudio](https://support.rstudio.com/hc/en-us/articles/205612627-Debugging-with-RStudio)] The debugger includes the following features: 
+
+- editor breakpoints, both inside and outside functions; 
+- code and local environment visualization during debugging; 
+- debug stepping tools (next, continue, etc.); 
+- deep integration with traditional R debugging tools, such as `browser` and `debug`.
+
+
+
+
+# Accessing R from terminal
+
+When running computations in R on servers, your scripts have to be standalone code, i.e. they should not require any user input. Once you transfer you scripts to the server you have to execute them there from the command line. Recall that you should use `screen` tool as well, to prevent termination of the computation due to termination of SSH connection^[There are alternatives to `screen`, see for example [tmux](http://tmux.sourceforge.net/)]. 
+
+There are two ways to execute an R script from the command line. 
+
+1. R CMD BATCH - experts advise against using this command  
+2. Rscript - recommended way
+
+By default Rscript^[There are many options that you could additionally use, like `--vanilla` to use basic R, check the help docs from the command line, `Rscript --help`.] command will not produce a file with the output, instead it will print it in the terminal, but you can instruct it to redirect it to a file. If you add shebang, `#!/usr/bin/Rscript`, at the top of your script, then you can also run it as you would run a shell script.
+
+```bash
+Rscript script.R
+Rscript script.R > log.txt
+
+# Check the output
+cat log.txt
+
+# if shebang is added
+./script.R  
+```
+
+R CMD BATCH command will automatically create a new file called script.Rout with the output.
+
+```bash
+R CMD BATCH script.R
+
+# Check the output
+cat script.Rout
+```
+
+**Note** that the output refers to the output that you would see in normal R console were you to run the same code interactively. The data, results or figures that you specifically save to the disk in that script should be on the disk, if the code ran successfully (no error occurred).  
+
+ 
+## Passing in arguments from terminal
+
+Sometimes you want you R script to be able to accept an argument when it is run from terminal. This is often the case if you have a shell script that describes your whole pipeline. For example, in a step before calling the script you might transform the dataset in some ways directly from shell with `awk` and the new dataset needs and potentially some variables have to be passed to the script as inputs.
+
+There are some useful posts on [StackOverflow](http://stackoverflow.com/questions/2151212/how-can-i-read-command-line-parameters-from-an-r-script) and for more details see `help(commandArgs)`.
+
+Let us create a small shell script that will illustrate this, `shellScript.sh`.
+
+```bash
+#!/bin/bash
+
+# shell creates some variable
+date=`date --date=-1day +%Y-%m-%d`
+
+# then we run the R script and pass in the variables
+Rscript script.R $date 10 40 training > log.txt
+```
+
+Now we are only missing an example of an R script that accepts inputs from shell, `script.R`. 
+
+```R 
+# tell R to receive arguments passed by the shell
+options(echo=TRUE) 
+args <- commandArgs(trailingOnly = TRUE)
+
+# lets see what we have passed
+print(args)
+
+date <- as.Date(args[1])
+par1 <- as.numeric(args[2])
+par2 <- as.numeric(args[3])
+name <- args[4]
+
+# save some processing
+x <- rnorm(1000, mean=par1, sd=par2)
+pdf(paste(name,".pdf", sep=""))
+plot(x)
+title(main=as.character(date))
+dev.off()
+
+summary(x)
+```
+
+Using `> log.txt` in the `shellScript.sh` file saves the output in an external file called `log.txt`. If you leave it out, it will simply print it on the terminal. Before running the shell script by calling `./shellScript.sh` remember to make it executable with `chmod +x shellScript.sh`.
+
+
+
+## littler
+
+Sometimes you would want a simple command line interface to R, so that you can execute R commands in an easy fashion, perhaps use in piping etc. For these purposes you can use `littler`^[See [littler website](https://github.com/eddelbuettel/littler).] To install it on Linux machines, type in your terminal
+
+```bash
+sudo apt-get install littler
+```
+
+Some example
+
+```bash 
+echo 'cat(pi^2,"\n")' | r 
+```
+
+it is possible to call R from shell and send this input to it, however it will start a whole R session and produce a lot of irrelevant output in the terminal. Compare the output from the command above with this one:
+
+```bash 
+R -e 'cat(pi^2,"\n")' 
+```
+
+
+
+
+
