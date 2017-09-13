@@ -54,11 +54,8 @@ fontsize: 12pt
     # getwd()
     # setwd("/home/hstojic/Teaching/BGSE_DS_ITC_2017/source")
 
-    # rmarkdown::render("session1_bash.Rmd", "rmarkdown::tufte_handout", clean=TRUE)
-    # rmarkdown::render("session1_bash.Rmd", "html_document", clean=TRUE)
-
-    # rmarkdown::render("session1_bash.Rmd", "tufterhandout::html_tufte_handout", clean=TRUE)
-    # rmarkdown::render("session1_bash.Rmd", "pdf_document", clean=TRUE)
+    # rmarkdown::render("handout_bash.Rmd", c("rmarkdown::tufte_handout", "tufterhandout::html_tufte_handout"), clean=TRUE, output_dir = "../handouts")
+    # rmarkdown::render("handout_bash.Rmd", c("html_document", "pdf_document"), clean=TRUE)
 
 ```
 
@@ -533,9 +530,214 @@ bash piping_arguments.sh download-and-clean-data.sh
 
 # Version control with Git
 
-- in process
+Have you ever had situation like this?
+
+![](pics/final.gif)
+
+Version control to the rescue! There are several version control softwares, but we will focus on arguably the most popular one, called `git`. It has been developed for collaborative effort of developing the Linux kernel - it allows multiple users to work simultaneously on the code of the same software project. `git` is also the software underlying the [GitHub](http://www.github.com), a popular public software repository.
+
+At the moment we will ignore the main aspect of `git` - collaborative software development, and focus on local usage by a single developer - you. There are some benefits to reap from version control system even if it is used by a single developer:  
+
+1. You avoid situations from the comic, no more clutter. 
+2. Facilitates experimentation with the code.
+3. Easy to share the code publicly through GitHub (e.g. R package).
+
+Collaborative development brings in further complexities that go beyond this course and you will learn about these with practice. The aim is here to get started with version control and incorporate it into your own code development.
+
+Here you will get bare basics and there are many good online tutorials to learn more about it. Check the official website for many good case usage examples and more detailed explanations^[[git-scm.com](https://git-scm.com/)].
 
 
+## Using git to work with a local repository
+
+`git` is a command line tool. In Ubuntu for example, you can install it easily with 
+
+```bash
+sudo apt install git
+```
+
+Once it is installed, as for other shell commands you can get an overview by typing
+
+```bash
+git --help
+man git
+```
+
+Similarly, the basic structure of the command is
+
+```
+git <command> <arguments>
+```
+
+We will illustrate git by creating a local repository for developing a
+small `bash` project. In folder `cool_bash_project` we will initialize git with the command `git init`
+
+```bash
+mkdir cool_bash_project && cd cool_bash_project/
+git init
+ls -hla
+```
+
+You will note that git creates a hidden directory called `.git` where git data
+is stored. You should be careful not to modify the content of this folder unless you are absolutely certain you know what you are doing. The command `git status` tells you the current status of the repository.
+
+
+```bash
+git status
+```
+
+You should see this kind of output:
+
+```
+On branch master
+
+Initial commit
+
+nothing to commit (create/copy files and use "git add" to track)
+```
+
+At the moment nothing has been put under version control, i.e. in git terminology, nothing has been "committed". So let's add some empty files to the repository and commit them to version control.
+
+```bash
+touch myscript.sh
+touch Readme.md
+git add Readme.md myscript.sh
+git commit . -m "Initial commit"
+git status
+```
+
+The procedure is always first adding the files with the `git add` command and then committing them with `git commit` which makes the modifications permanent. Note that commit command requires you to specify a brief comment explaining what changes you have done.
+
+From now on you start editing your files and when you think you have done big enough modification (or finished a logical, closed modification), you
+commit your changes to the repository.
+
+```bash
+echo "Cool Bash Project" >> Readme.md
+git status
+git add Readme.md
+git commit -m "Readme - written up project description"
+```
+
+Important thing to note is the mechanism by which changes in the code are saved. Git does not save a complete new file for each commit, instead it saves a difference between the versions. This makes git much more efficient in terms of data storage. Also, it means it needs to be able to easily identify differences. Hence, git works great for text files, but not for binary files and you should avoid committing such files (including images, MS doc's, pdf's etc). This is why you don't need to manually create versions - version control system is doing that for you in an efficient manner.
+
+Of course, you need to be able to go back to previous versions. With `git log` command you can see a list of your commits. Among other details about each commit (description you have put, date etc) there is a unique identifier associated to each commit, for example it would look like this
+
+```
+commit 63e60c919b7f8ca6fe2f5bb7388b9841f21335cb
+```
+
+You can use this identifier to revert the whole repository to the state in which it was during that commit with `git checkout` command
+
+```bash
+git checkout 63e60c919b7f8ca6fe2f5bb7388b9841f21335cb
+
+# you can also arbitrarily shorten the identifier, 
+# it will probably catch it
+git checkout 63e60c919b
+```
+
+With this you can work on your code and safely experiment with some modifications and potentially breaking the code, knowing that you can always go back to a version where everything has worked fine. 
+
+A better way to do this kind of experimentation is actually to work on a separate "branch". By default when you start a repository you are working on a "master" branch. When you want to implement a new feature it's better to create a new branch at certain point (think of it as a copy of the whole repo with its own history and commits) and when you are satisfied with changes and convinced everything works you "merge" it into the master branch.
+
+When creating a new branch you automatically switch to it.
+
+```bash
+git checkout -b coolNewFeature  # creating a new branch
+git branch  # list branches
+git status
+```
+
+You can now create new files and commit them to the new branch.
+
+```bash
+echo "some code" >> feature.sh
+git status
+git add feature.sh
+git commit -m "Adding feature x, draft"
+```
+
+But in the same time you can separately work on the main master branch, without changes and commits from "coolNewFeature" branch interfering with it.
+
+```bash
+git checkout master
+echo "some further comments" >> Readme.md
+git add Readme.md
+git commit -m "Adding some further comments"
+
+# nice way of showing branches and commits in them
+git log --graph --all --oneline --decorate
+```
+
+Merging can often be done automatically, but in more complex projects it can be a bit more involved and you should investigate this topic further on your own. In case below merging will be done automatically as there are no conflicts that need to be resolved. You will automatically be asked to commit a message associated with the merge. 
+
+```bash
+git merge coolNewFeature
+git log --graph --all --oneline --decorate
+```
+
+You are often interested in comparing your current file with previous or some other version. because files are based on text this is easy to do and there are many tools to do that. In git a command that comes by default is `git diff`. Meld is a nice and simple graphical tool to visualize differences and make changes.^[You'll have to first install it, check the [website](http://meldmerge.org/)].
+
+```bash
+git diff Readme.md
+meld Readme.md
+```
+
+Two other essential command are those used to rename files, `git mv`, and to remove files, `git rm`.
+
+
+```bash
+# renaming
+git mv Readme.md README.md
+git status
+git commit . -m "renaming files"
+
+# removing
+touch wrong.txt
+git add wrong.txt
+git commit -m "adding new files"
+git rm wrong.txt
+git commit -m "removing wrong files"
+git status
+```
+
+Sometimes, your repository contains files that you are not interested to store in the repository, e.g. `.dropbox` file or `.Rdata`. You can instruct git to ignore such files by creating a `.gitignore` file where you list individual files or whole directories.
+
+There are many other features of git that you should get a handle on, but already with these few commands you are equipped for getting the individual development benefits of version control.
+
+
+## Collaborative development
+
+This is where version control systems shine. It is a complex topic and there are couple of work flows. We will not go into details here but I will explain some basics.
+
+Collaborative development version works as follows. A central server contains the main repository of code (say at GitHub or Bitbucket). Individual users download a copy of the code on their local machine, this is what you do with `git clone` command that you can also find at a GitHub repo. For example, you can clone the repo of this course from [github.com/hstojic/BGSE_IntroToComputing](https://github.com/hstojic/BGSE_IntroToComputing) and start working on the files
+
+```bash
+git clone https://github.com/hstojic/BGSE_IntroToComputing.git
+cd BGSE_IntroToComputing
+git status
+git log
+```
+
+Each time you work on your local copy, it is important to make sure you are up to date with the latest changes in the main repository with `git pull` command. 
+
+```bash
+git pull
+```
+
+In a basic workflow, I would assign you as a collaborator on the project and then you would be allowed to submit changes to the main repository, using the `git push` command. 
+
+```bash
+# committing your own changes in the project
+echo "some new code" >> feature2.sh
+git status
+git add feature2.sh
+git commit -m "Adding feature y, draft"
+
+# pushing your commit to the repo at the server (origin) 
+# from your master branch
+git push origin master
+```
+ 
 
 
 # Servers
