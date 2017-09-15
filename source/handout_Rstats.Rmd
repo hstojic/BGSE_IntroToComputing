@@ -1,5 +1,5 @@
 ---
-title: "Computing 4 - Basic analysis & Other topics"
+title: "Basic analysis & Other topics"
 author: "Hrvoje Stojic"
 date: "September 15, 2017"
 output: 
@@ -55,11 +55,8 @@ fontsize: 12pt
     # getwd()
     # setwd("/home/hstojic/Teaching/BGSE_DS_ITC_2017/source")
 
-    # rmarkdown::render("session4_Rstats.Rmd", "rmarkdown::tufte_handout", clean=TRUE)
-    # rmarkdown::render("session4_Rstats.Rmd", "html_document", clean=TRUE)
-
-    # rmarkdown::render("session4_Rstats.Rmd", "tufterhandout::html_tufte_handout", clean=TRUE)
-    # rmarkdown::render("session4_Rstats.Rmd", "pdf_document", clean=TRUE)
+    # rmarkdown::render("handout_Rstats.Rmd", c("rmarkdown::tufte_handout", "tufterhandout::html_tufte_handout"), clean=TRUE, output_dir = "../handouts")
+    # rmarkdown::render("handout_Rstats.Rmd", c("html_document", "pdf_document"), clean=TRUE)
     
 ```
 
@@ -67,72 +64,6 @@ fontsize: 12pt
 # Introduction
 
 The last handout gave an overview on importing data, the essentials of R plots, and handling text and dates. All these represent the first step in an project. In this handout we will cover the actual data analysis, but prior to performing any data analysis we need to go over few other concepts.
-
-
-# Arithmetics
-
-Arithmetics is important for variable transformations whenever you have numerical variables. Arithmetic operators available in R are also called binary operators. They work on both vectors and matrices. 
-
------------------------------------------
-Operator    Description
-----------  -----------------------------
-`+`         addition
-
-`-`         subtraction
-
-`*`         multiplication
-
-`/`         division
-
-`^ or **`   exponentiation
-
-`x %% y`    modulus (x mod y) 5%%2 is 1
-
-`x %/% y`   integer division 5%/%2 is 2 
------------------------------------------
-
-
-Matrices have a set of operators that are specific to matrix algebra. Matrix algebra is less important for data manipulation, but is very important for programming machine learning algorithms. There are many other functions for matrix algebra, such as `solve`, `diag`, `eigen` or `svd`, but here I listed the most basic ones.
-
-------------------------------------------------
-Operator           Description
------------------  -----------------------------
-`A * B `           Element-wise multiplication
-
-`A %*% B`          Matrix multiplication 
-
-`A %o% B`          Outer product, AB' 
-
-`crossprod(A,B)`   Cross product, A'B
-
-`t(A)`             Transpose
-------------------------------------------------
-
-
-
-```{r}
-y <- matrix(1:12, 3, 4)
-y 
-
-# some examples
-3 * y  # scalar-matrix operation
-3 / y 
-y / 3 
-y**3  # this is not a square of a matrix!
-3 + y  # this will work as well - BROADCASTING!
-
-# in vector-matrix operations, an atomic vector  
-# is treated as a row vector
-x <- 1:3
-x %*% y  # this is correct, [1 3] [3 4]
-#y %*% x  # this will produce an error [3 4] [1 3]
-
-# strangely, this would work as well
-x * y  # row-wise multiplication - BROADCASTING!
-```
-
-Note that matrix algebra in R does not strictly follow the rules of linear algebra, mostly due to its broadcasting feature.
-
 
 
 # The apply family of functions 
@@ -947,5 +878,122 @@ R -e 'cat(pi^2,"\n")'
 
 
 
+# Interactive vizualization with Shiny
 
+This session focuses on dynamic visualization with the help R package Shiny. Figures are nice, but we can go further, we can illustrate our results in interactive web applications!  
+
+
+## Why interactive visualizations?
+
+> Achieving high prediction accuracy with a super-cool-new method is great, but without successful communication it is all for naught.   
+
+1. If you intend to work as a data scientist, as a rule you will have to report to others.  
+2. Our visual sensory system has the largest "bandwidth" of all our senses. You should leverage it to convey your messages better. With interactive visualization you can transmit much more information, but you can also influence to which aspects of your visualization the audience should pay attention to. It is much more than simple engineering.^[see excellent books by [Edward Tufte](http://www.edwardtufte.com/tufte/) on how to present visual information!]      
+3. Besides improving communication with our audience, interactive visualizations can improve our own understanding of the problem and the methods.  
+4. It's fun and eye catching!  
+
+
+## Why Shiny?
+
+- You need only R!  
+- For interactive visualizations nowadays you would use HTML and Javascript - Shiny hides almost all of it (although a bit of HTML/JS knowledge can come handy)! 
+
+
+
+# Developing a simple webapp with R package Shiny
+
+There is a nice gallery of examples on the shiny [website](https://shiny.rstudio.com/gallery/) and they are a good starting point. At the moment you can get some slots on Shinyapps server [server](https://www.shinyapps.io/) for free but with some contraints, so that is not a long term solution if you would use it a lot. You can install Shinyapps on your server, but you will need to learn a bit about servers etc. 
+
+
+
+## Hello World! example
+
+First make sure you have the following packages installed: `shiny`. If you want to deploy apps on RStudio's Shinyapps server, you will need some additional packages.
+
+```R
+install.packages("shiny")
+```
+
+Web applications in shiny usually consist of two files: `ui.R` and `server.R`. It can be done in a single file, which can come handy if you want to make a Shiny object a part of your `.Rmd` file. 
+
+Best way to learn it is to take a look at an [example](https://shiny.rstudio.com/gallery/kmeans-example.html). These are the ui.R and server.R from the "K means" example.
+
+
+**ui.R**
+
+```R    
+pageWithSidebar(
+
+    headerPanel('Iris k-means clustering'),
+
+    sidebarPanel(
+        selectInput('xcol', 'X Variable', names(iris)),
+        selectInput('ycol', 'Y Variable', names(iris),
+                    selected=names(iris)[[2]]),
+        numericInput('clusters', 'Cluster count', 3,
+                     min = 1, max = 9)
+    ),
+
+    mainPanel(
+        plotOutput('plot1')
+    )
+
+)
+```
+
+- `pageWithSidebar()` is one of the types of user interface layouts, there are many more of them, check the Shiny reference [page](https://shiny.rstudio.com/reference/shiny/). A lot of these actually build on Boostrap designed HTML classes.  
+- user interface will usually consist of a part where a user provides an input (in this user layout it is sidebarPanel()), and a part where output produced by server.R is shown (here mainPanel())  
+- names of inputs and outputs have to be unique (here we have "xcol", "ycol", "clusters" and "plot1") - names are actually "id" tags in HTML, they serve as unique identifiers of crucial HTML elements  
+
+
+**server.R**
+
+```R
+function(input, output, session) {
+
+    # Combine the selected variables into a new data frame
+    selectedData <- reactive({
+        iris[, c(input$xcol, input$ycol)]
+    })
+
+    clusters <- reactive({
+        kmeans(selectedData(), input$clusters)
+    })
+
+    output$plot1 <- renderPlot({
+        palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
+          "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"))
+
+        par(mar = c(5.1, 4.1, 0, 1))
+        plot(selectedData(),
+             col = clusters()$cluster,
+             pch = 20, cex = 3)
+        points(clusters()$centers, pch = 4, cex = 4, lwd = 4)
+    })
+
+}
+```
+
+- function `function(input, output, session) {...}` defines the computations done on the server side, which produce the output shown on the user interface, it has to be included in the `server.R` file.  
+- `input` argument to the function is a list by which all the user inputs are forwarded to the server part, e.g. user specified number of clusters, which is captured by `clusters` variable in the `ui.R`, so the server can access this value through `input$clusters`.
+
+
+## Running locally
+
+Within R we can launch an app locally by navigating first to the directory where our application is located and then running the following command: `shiny::runApp()`. This will open the application in a browser or simply give you an URL (you should see something like 127.0.0.1:1234, this is the URL pointing to your own computer). In RStudio you get a nice button called "run App" once you open server.R or ui.R, and it does everything automatically. 
+
+After opening it in a browser try opening the "developer tools" or "inspect element" in your browser and examine the HTML itself. You will notice that Shiny heavily relies on [Boostrap](http://getbootstrap.com/). Boostrap is a Javascript library aimed at cross-platform compatibility and adjustment to various devices that are nowadays used for accessing the internet - desktops, tablets, mobile phones.
+
+
+## Deploying publicly 
+
+To deploy it publicly, you will need to set up an account on [Shinyapps](http://www.shinyapps.io/) or install [Shiny Server](https://github.com/rstudio/shiny-server/blob/master/README.md) on your own server. I'll let you explore this topic on your own.
+
+
+
+## "Alternatives" to Shiny  
+
+1. [plotly](https://plot.ly/) - Language independent data visualization, together with hosting and data. Aimed at achieving the ideal of reproducibility.  
+2. [D3](http://d3js.org/) - Powerful Javascript library for interactive graphics in HTML. It is quite versatile, but there is a rather steep learning curve to get to the basic level. There are some R packages that create basic type of interactive graphics in D3, take a look at the [R2D3](http://www.coppelia.io/2014/08/introducing-r2d3/).  
+3. [Google Charts](https://developers.google.com/chart/) - famous Hans Rosling [TED talk](http://www.ted.com/talks/hans_rosling_shows_the_best_stats_you_ve_ever_seen) few years ago featured moving charts that nicely illustrated evolution of some indicators over time (e.g. infant mortality and GDP in the world over time). Finally, Google bought the visualization libraries and improved them. There is an R package that facilitated creating such charts with R - [googleVis](https://github.com/mages/googleVis), and it can be used within Shiny as well (albeit not without issues).  
 
