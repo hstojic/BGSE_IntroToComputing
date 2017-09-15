@@ -1,0 +1,76 @@
+[user]
+	email = hrvoje.stojic@protonmail.com
+	name = hstojic
+[core]
+	editor = subl
+[web]
+	browser = firefox
+[color]
+	ui = auto
+[color "branch"]
+	current = yellow bold
+	local = cyan bold
+	remote = green bold
+[color "diff"]
+	meta = yellow bold
+	frag = magenta bold
+	old = red bold
+	new = green bold
+	whitespace = red reverse
+[color "status"]
+	added = yellow 
+	changed = green
+	untracked = red 
+[diff]
+	tool = meld
+[alias]
+	a = add 
+	#############
+	b = branch
+	ba = branch -a
+	bd = branch -d
+	br = branch -r
+	#############
+	c = commit
+	ca = commit -a
+	cm = commit -m
+	#############
+	d = diff
+	#############
+	ls = ls-files
+	lsf = "!git ls-files | grep -i"
+	#############
+	ps = push
+	psf = push -f
+	psu = push -u
+	pso = push origin
+	psao = push --all origin
+	psfo = push -f origin
+	psuo = push -u origin
+	psom = push origin master
+	psfom = push -f origin master
+	psuom = push -u origin master
+	#############
+	r = remote
+	ra = remote add
+	rr = remote rm
+	rv = remote -v
+	rm = remote rename
+	rp = remote prune
+	rs = remote show
+	rao = remote add origin
+	rau = remote add upstream
+	rso = remote show origin
+	rsu = remote show upstream
+	rpo = remote prune origin
+	rpu = remote prune upstream
+	#############
+	s = status
+	sb = status -s -b
+	
+	# Show all of my configured aliases
+    aliases = !git config --list | grep 'alias\\.' | sed 's/alias\\.\\([^=]*\\)=\\(.*\\)/\\1\\ \t => \\2/' | sort
+    
+    # log format view
+    lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
+    hist = log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short
