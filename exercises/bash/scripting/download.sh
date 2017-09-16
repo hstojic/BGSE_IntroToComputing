@@ -2,7 +2,8 @@
 
 echo "This scripts downloads data from google finance"
 
-# 1. create folder with the name contained in the variable FNAME below
+# 1. create folder with the name "data"
+# 	 this removes data folder if it exists and then creates it
 rm -rf data && mkdir data
 
 # 2. next, we define important parameters
