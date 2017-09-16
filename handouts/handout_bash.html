@@ -683,19 +683,19 @@ $(document).ready(function () {
 <p>Enter the text below (you have to press <code>i</code> to enter the editing mode and insert any text).</p>
 <div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="co">#!/bin/bash</span>
 
-<span class="bu">echo</span> <span class="st">&quot;This scripts downloads data from finance yahoo&quot;</span>
+<span class="bu">echo</span> <span class="st">&quot;This scripts downloads data from google finance&quot;</span>
 
 <span class="va">list=</span><span class="st">'IBM BAC'</span>
 
-<span class="va">site=</span>http://ichart.finance.yahoo.com/table.csv
+<span class="va">site=</span>http://www.google.com/finance/historical
 
 <span class="kw">for</span> <span class="ex">series</span> in <span class="va">$list</span>
 <span class="kw">do</span>
     <span class="bu">echo</span> <span class="va">$series</span>
 
-    <span class="fu">wget</span> <span class="st">&quot;</span><span class="va">$site</span><span class="st">?s=</span><span class="va">$series</span><span class="st">&amp;a=00&amp;b=1&amp;c=2000&amp;d=11&amp;e=31&amp;f=2013&amp;g=d&amp;ignore=.csv&quot;</span>
+    <span class="fu">wget</span> <span class="st">&quot;</span><span class="va">$site</span><span class="st">?q=NYSE:</span><span class="va">$series</span><span class="st">&amp;startdate=Jan+1,2008&amp;enddate=Jan+1,2010&amp;output=csv&quot;</span>
 
-    <span class="fu">mv</span> table* <span class="va">$series</span>.csv
+    <span class="fu">mv</span> hist* <span class="va">$series</span>.csv
 
     <span class="fu">tail</span> -n +2 <span class="va">$series</span>.csv <span class="kw">|</span> <span class="fu">tac</span> <span class="op">&gt;</span> tmp
 
@@ -707,7 +707,7 @@ $(document).ready(function () {
 <p>You can run it in two ways</p>
 <div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="ex">./download-and-clean-data.sh</span>
 <span class="fu">bash</span> download-and-clean-data.sh</code></pre></div>
-<p>The script is going to connect to the website <code>http://finance.yahoo.com</code>, download stock prices for the stocks BAC and IBM, clean the data files and save them in the current directory.</p>
+<p>The script is going to connect to the website <code>http://www.google.com/finance</code>, download stock prices for the stocks BAC and IBM, clean the data files and save them in the current directory.</p>
 <p>If you want to supply your bash script an argument when you run it from the terminal, you use <code>$1</code> inside a shell script.</p>
 <div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="bu">echo</span> <span class="st">'head -30 &quot;$1&quot; | tail -5'</span> <span class="op">&gt;</span> piping_arguments.sh</code></pre></div>
 <p>This essentially means “the first filename (or other parameter) on the command line”. Note that this command will place a text in the echo command in a file called <code>piping_arguments.sh</code>. We can now run this script as before, but with additional argument the script name, in the example below, the argument being <code>download-and-clean-data.sh</code>.</p>

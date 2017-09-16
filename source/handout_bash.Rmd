@@ -475,19 +475,19 @@ Enter the text below (you have to press `i` to enter the editing mode and insert
 ```````bash
 #!/bin/bash
 
-echo "This scripts downloads data from finance yahoo"
+echo "This scripts downloads data from google finance"
 
 list='IBM BAC'
 
-site=http://ichart.finance.yahoo.com/table.csv
+site=http://www.google.com/finance/historical
 
 for series in $list
 do
     echo $series
 
-    wget "$site?s=$series&a=00&b=1&c=2000&d=11&e=31&f=2013&g=d&ignore=.csv"
+    wget "$site?q=NYSE:$series&startdate=Jan+1,2008&enddate=Jan+1,2010&output=csv"
 
-    mv table* $series.csv
+    mv hist* $series.csv
 
     tail -n +2 $series.csv | tac > tmp
 
@@ -511,7 +511,7 @@ bash download-and-clean-data.sh
 ```
 
 
-The script is going to connect to the website `http://finance.yahoo.com`, download stock prices for the stocks BAC and IBM, clean the data files and save them in the current directory.
+The script is going to connect to the website `http://www.google.com/finance`, download stock prices for the stocks BAC and IBM, clean the data files and save them in the current directory.
 
 If you want to supply your bash script an argument when you run it from the terminal, you use `$1` inside a shell script. 
 
