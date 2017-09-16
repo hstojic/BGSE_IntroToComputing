@@ -36,7 +36,7 @@ do
 
 	# - in each iteration we download the CSV file using a URL,
 	#   use wget command with the following URL: 
-	#   "http://www.google.com/finance/historical?q=NYSE:GOOG&startdate=Jan+1,2008&enddate=Jan+1,2010&output=csv"
+	#   "http://www.google.com/finance/historical?q=NASDAQ:GOOG&startdate=Jan+1,2008&enddate=Jan+1,2010&output=csv"
 	# - ou will need to modify some parts of the URL, in the example above
 	#   you would substitute "GOOG", "2008", and "2010". Instead of "GOOG" you 
 	#   should insert an element from the LIST, and instead of "2008" 
