@@ -1,5 +1,5 @@
 ---
-title: "Computing 3 - Data manipulation"
+title: "Data manipulation with R"
 author: "Hrvoje Stojic"
 date: "September 15, 2017"
 output: 
@@ -55,11 +55,8 @@ fontsize: 12pt
     # getwd()
     # setwd("/home/hstojic/Teaching/BGSE_DS_ITC_2017/source")
 
-    # rmarkdown::render("session3_Rdata.Rmd", "rmarkdown::tufte_handout", clean=TRUE)
-    # rmarkdown::render("session3_Rdata.Rmd", "html_document", clean=TRUE)
-
-    # rmarkdown::render("session3_Rdata.Rmd", "tufterhandout::html_tufte_handout", clean=TRUE)
-    # rmarkdown::render("session3_Rdata.Rmd", "pdf_document", clean=TRUE)
+    # rmarkdown::render("handout_Rdata.Rmd", c("rmarkdown::tufte_handout", "tufterhandout::html_tufte_handout"), clean=TRUE, output_dir = "../handouts")
+    # rmarkdown::render("handout_Rdata.Rmd", c("html_document", "pdf_document"), clean=TRUE, output_dir = "../handouts")
 
 ```
 
@@ -214,7 +211,7 @@ dbDisconnect(con)
 dbUnloadDriver(drv)
 ```
 
-Connectivity to databases not only imports tables into R, you can also run queries into the database, for example, by submitting the SQL code. You will do this in another course in more details.
+Connectivity to databases not only imports tables into R, you can also run queries into the database, for example, by submitting the SQL code. 
 
 
 ## Exporting data

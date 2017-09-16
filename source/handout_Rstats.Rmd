@@ -56,7 +56,7 @@ fontsize: 12pt
     # setwd("/home/hstojic/Teaching/BGSE_DS_ITC_2017/source")
 
     # rmarkdown::render("handout_Rstats.Rmd", c("rmarkdown::tufte_handout", "tufterhandout::html_tufte_handout"), clean=TRUE, output_dir = "../handouts")
-    # rmarkdown::render("handout_Rstats.Rmd", c("html_document", "pdf_document"), clean=TRUE)
+    # rmarkdown::render("handout_Rstats.Rmd", c("html_document", "pdf_document"), clean=TRUE, output_dir = "../handouts")
     
 ```
 
@@ -880,33 +880,21 @@ R -e 'cat(pi^2,"\n")'
 
 # Interactive vizualization with Shiny
 
-This session focuses on dynamic visualization with the help R package Shiny. Figures are nice, but we can go further, we can illustrate our results in interactive web applications!  
-
-
-## Why interactive visualizations?
-
-> Achieving high prediction accuracy with a super-cool-new method is great, but without successful communication it is all for naught.   
+This sections focuses on dynamic visualization with the help R package Shiny. Figures are nice, but we can go further, we can illustrate our results in interactive web applications. 
 
 1. If you intend to work as a data scientist, as a rule you will have to report to others.  
 2. Our visual sensory system has the largest "bandwidth" of all our senses. You should leverage it to convey your messages better. With interactive visualization you can transmit much more information, but you can also influence to which aspects of your visualization the audience should pay attention to. It is much more than simple engineering.^[see excellent books by [Edward Tufte](http://www.edwardtufte.com/tufte/) on how to present visual information!]      
 3. Besides improving communication with our audience, interactive visualizations can improve our own understanding of the problem and the methods.  
 4. It's fun and eye catching!  
 
-
-## Why Shiny?
-
+Why Shiny?
 - You need only R!  
 - For interactive visualizations nowadays you would use HTML and Javascript - Shiny hides almost all of it (although a bit of HTML/JS knowledge can come handy)! 
 
 
-
-# Developing a simple webapp with R package Shiny
+## Hello World! example
 
 There is a nice gallery of examples on the shiny [website](https://shiny.rstudio.com/gallery/) and they are a good starting point. At the moment you can get some slots on Shinyapps server [server](https://www.shinyapps.io/) for free but with some contraints, so that is not a long term solution if you would use it a lot. You can install Shinyapps on your server, but you will need to learn a bit about servers etc. 
-
-
-
-## Hello World! example
 
 First make sure you have the following packages installed: `shiny`. If you want to deploy apps on RStudio's Shinyapps server, you will need some additional packages.
 

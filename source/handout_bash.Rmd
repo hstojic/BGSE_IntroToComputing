@@ -55,7 +55,7 @@ fontsize: 12pt
     # setwd("/home/hstojic/Teaching/BGSE_DS_ITC_2017/source")
 
     # rmarkdown::render("handout_bash.Rmd", c("rmarkdown::tufte_handout", "tufterhandout::html_tufte_handout"), clean=TRUE, output_dir = "../handouts")
-    # rmarkdown::render("handout_bash.Rmd", c("html_document", "pdf_document"), clean=TRUE)
+    # rmarkdown::render("handout_bash.Rmd", c("html_document", "pdf_document"), clean=TRUE, output_dir = "../handouts")
 
 ```
 
