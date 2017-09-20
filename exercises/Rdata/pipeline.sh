@@ -41,9 +41,17 @@ Rscript cAnalysis/demographics.R > rTables/demographics
 # Create rFigs folder if it doesnt exist
 mkdir -p rFigs
 
-# call the R scripts that will produce figures
-Rscript cFigs/fig1.R 
-Rscript cFigs/fig2.R 
+# Call the R scripts that will produce figure illustrating 
+# percentage of seniors in each district
+Rscript cFigs/seniorsPerDistrict.R > log
+
+# Call the R scripts that will produce figure illustrating
+# correlation between population size and percentage of seniors 
+# This time we will pass variables/constants to R script that 
+# will use them and modify the figure - variable DISTRICTS will determine
+# for which districts we will plot the data. 
+DISTRICTS="Rugby Warwick Stratford-on-Avon"
+Rscript cFigs/corPopulationSeniors.R $DISTRICTS > log
 
 
 
