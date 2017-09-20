@@ -67,14 +67,6 @@ To be able to build PDF, HTML and other types of documents from it you need to i
 
 
 
-
-* LM normal equations exercise (45m)
-  - more general fnc for creating the data
-  - nicer plot with ggplot
-  - use built in lm fnc
-  - their own lm fnc
-
-
 # Generating the data
 
 Let's first generate some artificial data for which we know the ground truth. You can reuse the code from the `rng.R` exercise, but now we will make the function more general, so that we can create dataset of arbitrarily many dimensions (i.e. vector w can be of any length). Moreover, there will be another argument to the function, `dist`, that will determine whether Uniform or Normal distribution is used for generating values for each feature.
