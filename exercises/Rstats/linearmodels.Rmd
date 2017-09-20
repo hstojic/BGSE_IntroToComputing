@@ -1,0 +1,340 @@
+---
+title: "Untitled"
+author: "Hrvoje Stojic"
+date: "September 15, 2017"
+output: 
+  html_document:
+    theme: united
+    highlight: kate
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+
+# cleaning before starting
+rm(list = ls())
+
+# loading in required packages
+library(knitr)
+library(rmarkdown)
+library(ggplot2)
+
+# some useful global defaults
+opts_chunk$set(warning=FALSE, message=FALSE, include=TRUE, echo=TRUE, 
+               cache=TRUE, cache.comments=FALSE, comment='##',
+               results="hold")
+
+# output specific defaults
+output <- opts_knit$get("rmarkdown.pandoc.to")
+if (output=="html") opts_chunk$set(fig.width=10, fig.height=5)
+if (output=="latex") opts_chunk$set(fig.width=6,  fig.height=4, 
+    dev = 'cairo_pdf', dev.args=list(family="Arial"))
+
+# set the path if using interactively
+# setwd("/home/hstojic/Teaching/BGSE_DS_ITC_2017/solutions/Rstats")
+
+# you can use this command to compile the document
+# Rstudio has a convenient button that executes this command
+# rmarkdown::render("linearmodels.Rmd", "html_document", clean=TRUE)
+
+# set some parameters
+fontSetup <- "Helvetica"
+fontSize <- 10
+
+```
+
+
+# R Markdown
+
+This is an R Markdown document. All of the handouts for the course were written in R markdown - you can identify them with the .Rmd extension. To use these files simply open them as you would open any other R script and edit them in a simple text editor. It is a powerful combination of R code and lowly formatted text (this is why it is called mark*down*) - it allows you to keep the text and code in the same document, which goes a long way to ensure reproducibility of the analysis.
+
+To be able to build PDF, HTML and other types of documents from it you need to install [Rmarkdown](http://rmarkdown.rstudio.com/) and [knitr](http://yihui.name/knitr/) packages. If you use RStudio there is a **Knit** button that compiles documents automatically, while if you are using a text editor you will need to run a specific command. For example, open a terminal in the folder containing the .Rmd file and run `R -e 'library(knitr);library(rmarkdown);rmarkdown::render("file_name.Rmd", "html_document")'`. Note that PDF output (including Beamer slides) requires a full installation of TeX.
+
+
+**Why knitr or Rmarkdown?**  
+
+- **Reproducibility**: 
+    - It makes your data analysis more reproducible. The R code describes exactly the steps from the raw data to the final report. This makes it perfect for sharing reports with your colleagues.   
+    - It is written with almost no formatting at all (markdown), which makes it easier to convert to any other format, from nicely looking PDFs to the all-present MS docx and complete HTML documents (fancy a blog?).     
+- **Efficiency**: 
+    - Statistical output from figures to tables is automatically placed in your report. No more copy-pasting and reformatting the output from your statistical analysis program into your report.  
+    - You want to use a slightly different subset of the data? You want to drop that outlier observation? No problem, you can update your report with a single click instead of updating every table and figure.  
+    - Whoever has done some copy-pasting knows how easy is to overlook one number or one figure. This type of document also significantly reduces the chance of such errors.   
+- **Education & Communication**: 
+    - Excellent for teaching as one can check how exactly is some analysis done from the report.  
+    - Do not disregard this aspect, look at Github and Stackoverflow stars who get job offers on this account!  
+
+
+
+
+* LM normal equations exercise (45m)
+  - more general fnc for creating the data
+  - nicer plot with ggplot
+  - use built in lm fnc
+  - their own lm fnc
+
+
+# Generating the data
+
+Let's first generate some artificial data for which we know the ground truth. You can reuse the code from the `rng.R` exercise, but now we will make the function more general, so that we can create dataset of arbitrarily many dimensions (i.e. vector w can be of any length). Moreover, there will be another argument to the function, `dist`, that will determine whether Uniform or Normal distribution is used for generating values for each feature.
+
+```{r rlinmod, echo=FALSE}
+
+rlinmod <- function(n, w, sd, dist = runif) {
+    
+	# how many features?
+	m <- length(w)
+
+    # lets draw observations for x from a distribution given by the argument
+    x <- YOUR-CODE
+
+    # and then generate y as a function of x and some optional error
+    # a linear model of the form: y = Xw
+    # use matrix multiplication operator    
+    y <- cbind(1, x) %*% w + rnorm(n, mean = 0, sd = sd)
+
+    # put x and y in a dataframe
+    data <- data.frame(y, x)
+
+    # rename all the x variables so that they have the following format:
+    # x1, x2, ... xm
+    YOUR-CODE
+
+    return (data)
+}
+
+# lets try it out
+set.seed(1234)
+data <- rlinmod(200, c(5, 3, -2), 2)
+head(data)
+
+# output should be:
+#          y        x1        x2
+# 1 4.990055 0.1137034 0.6607546
+# 2 7.203717 0.6222994 0.5283594
+# 3 6.563864 0.6092747 0.3174938
+# 4 6.735894 0.6233794 0.7678555
+# 5 7.153491 0.8609154 0.5263085
+# 6 6.977253 0.6403106 0.7323019
+# ...
+```
+
+
+## Illustrate the data 
+
+
+We will first generate the data of lower dimension that can be easily visualized. We will use this data for the rest of the exercise.
+
+```{r trainData}
+
+set.seed(1234)
+trainData <- rlinmod(200, c(5, 3), 2)
+head(trainData)
+
+# output should be:
+#          y        x1
+# 1 6.170157 0.1137034
+# 2 5.917461 0.6222994
+# 3 6.959811 0.6092747
+# 4 5.865183 0.6233794
+# 5 5.930749 0.8609154
+# 6 7.254910 0.6403106
+# ...
+```
+
+Use the `ggplot2` package to create a nicely formatted scatter plot of the data. 
+
+```{r scatterplot, echo=FALSE}
+
+# generate the figure
+figure <- 
+    YOUR-CODE
+
+# show the figure in the report
+print(figure)
+
+```
+
+
+# Fitting linear models
+
+
+Linear regression is the most widely used tools in statistics. Consider the following linear regression model
+
+$$ y_i = x_i  \beta + \epsilon_i, i = 1, ..., n$$
+
+where $\beta \in R^m$. We assume usual things, like $\epsilon_i$ is a zero mean and $\sigma_{\epsilon}^2$ variance error term is uncorrelated with $x_i$. The system can be equivalently expressed using matrix notation 
+
+$$y = X \beta + \epsilon.$$
+
+The classic estimator of the linear regression model is the least squares estimator, defined as the minimizer of the residual sum of squares
+
+$$\hat{\beta} = \textrm{argmin}_{\beta} (y - X\beta)^T (y - X\beta).$$
+
+The estimator has a closed form solution 
+
+$$\hat{\beta} = (X^T X)^{-1} X^T y.$$
+
+You will use this estimator to compute the regression weights in your `linearmodel` function. It should produce the same coefficients as the `lm` function built-in R. But before that, use the `lm` function and fit a linear model to the data.
+
+
+```{r lmpractice}
+
+# use the "lm" function to fit the linear model, X variable on y variable
+# include the intercept in the model, use the trainData
+lmfit <- lm(YOUR-CODE) 
+
+# check the coefficients
+lmfit
+
+# use the "summary" command on results to get a more detailes overview of the
+# fit, you will get additional info like standard errors
+YOUR-CODE
+
+# note how summary command gives different output when used on some raw data 
+# (e.g. summary(rnorm(100))), while it gives a different output on output
+# of the lm function? this is called overloading
+
+# let's obtain diagnostic plots by using plot command on the output of the
+# lm function (again, example of overloading the functions)
+par(mfrow=c(2,2))
+plot(lmfit)
+par(mfrow=c(1,1))
+
+# obtain predictions for the training data based on the fitted model
+trainPredictions <- YOUR-CODE
+head(trainPredictions)
+
+# compute the mean square error between predictions and true values, y
+trainMSE <- YOUR-CODE
+trainMSE
+
+# how do you know how good is this? compute now a mean square error 
+# for the non-learning model - a simple mean of the observed y values
+baseMSE <- YOUR-CODE
+baseMSE
+
+# so the model does a bit better obviously, however the true indicator of 
+# how well the model does is the generalization performance, predictions 
+# on the data it has not been fitted to. So, lets now create some new, 
+# test data 
+set.seed(4321)
+testData <- rlinmod(100, c(5, 3), 2)
+head(testData)
+
+# and verify how our model predicts on it
+testPredictions <- YOUR-CODE
+head(testPredictions)
+
+# compute the mean square error between predictions and true values, y
+testMSE <- YOUR-CODE
+testMSE
+
+# lets compare them
+c(baseMSE, trainMSE, testMSE)
+
+# next, fit the linear model on the trainData
+# this time don't include the intercept in the model
+# and include an additional variable that is a sqare root of X
+lmfit2 <- YOUR-CODE
+lmfit2
+summary(lmfit2)
+
+```
+
+
+## Defining your own function for fitting linear models
+
+Now we will define our own function for fitting linear models, `linearmodel` function, that will use the closed form solution of least squares estimator to compute the weights.
+
+$$\hat{\beta} = (X^T X)^{-1} X^T y.$$
+
+
+```{r linearmodel}
+
+linearmodel <- function(data, intercept = TRUE) {
+
+    # we will assume that first column is the response variable
+    # an all others are having a form: x1, x2, ...
+    #
+    # ADVANCED:
+    # optionally, you can try to implement the formula concept
+    # same as it is used in lm function
+
+
+    # number of features
+    m <- ncol(data) - 1
+
+    # first we need to add a vector of 1's to our x (intercept!),
+    # if instructed by the intercept argument
+    if (intercept) {
+        X <- YOUR-CODE
+    } else {
+        X <- YOUR-CODE
+    }
+    y <- data$y
+
+    # now implement the analytical solution 
+    # using the matrix operations  
+    # hint: check "solve" command
+    what <- YOUR-CODE
+
+    # compute the predictions for the training data, i.e. fitted values
+    yhat <- YOUR-CODE
+
+    # compute the mean square error for the training data, between y and yhat
+    MSE <- YOUR-CODE
+
+    return(list(weights = what, predictions = yhat, MSE = MSE))
+}
+
+# check out the function
+lmmefit <- linearmodel(trainData)
+lmmefit$weights
+
+# compare it to the output of the lm function
+coefficients(lmfit) 
+
+```
+
+
+## Illustrate the data and your model predictions
+
+We will now create a plot where we additionally illustrate our predictions.
+
+```{r scatterplot_fit, echo=FALSE}
+
+# first create an additional data frame with x1 variable from trainData as one
+# column and predictions from the model, yhat, as a second model
+predData <- YOUR-CODE 
+
+# generate the figure
+figure <- 
+    ggplot(data, aes(y = y, x = x1)) + 
+    geom_point(size = 1.5, color = "#992121") +
+
+    # you will need to use geom_line, but now with
+    # predData, to illustrate the linearmodel fit
+    geom_line(YOUR-CODE) +
+
+    theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        axis.ticks = element_line(lineend = 4, linetype = 1, 
+                                  colour = "black", size = 0.3), 
+        axis.text = element_text(size = fontSize, colour = "black"),
+        axis.text.x = element_text(vjust = 0.5),
+        axis.title = element_text(size = fontSize + 1),
+        text = element_text(family = fontSetup),
+        validate = TRUE
+    )
+
+# show the figure in the report
+print(figure)
+
+```
