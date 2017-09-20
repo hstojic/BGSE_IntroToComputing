@@ -26,13 +26,14 @@ mkdir -p dProcessed
 # useful variables etc. Finally, clean the directory. 
 # We create also the log file that helps if there were errors in the execution
 # (whenever you have print statements in R file, it will be printed out there)
-Rscript dRaw/processData.R dRaw/data/ > log
+Rscript dRaw/processData.R > log
 rm -r dRaw/data 
 
 
 ### 2. Small data analysis 
 
 # Call the R scripts that will create some summaries
+mkdir -p rTables
 Rscript cAnalysis/demographics.R > rTables/demographics
 
 
