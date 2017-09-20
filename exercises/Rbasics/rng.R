@@ -154,7 +154,7 @@ head(MC)
 # [1] 6.000000 9.000000 4.000000 7.666667 6.666667 6.333333
 
 # how does it correspond to a normal distribution
-hist(MC, breaks = 16, probability = TRUE)
+hist(MC, breaks = 16, xlim = c(1,12), probability = TRUE)
 xfit <- seq(min(MC),max(MC),length=40)
 yfit <- dnorm(xfit, mean = mean(MC), sd = sd(MC))
 lines(xfit, yfit, col="blue", lwd=2)
@@ -170,7 +170,7 @@ for (i in 1:n) {
     MC <- c(MC, sm)
 }
 
-hist(MC, breaks = 16, probability = TRUE)
+hist(MC, breaks = 16, xlim = c(1,12), probability = TRUE)
 xfit <- seq(min(MC),max(MC),length=40)
 yfit <- dnorm(xfit, mean = mean(MC), sd = sd(MC))
 lines(xfit, yfit, col="blue", lwd=2)
