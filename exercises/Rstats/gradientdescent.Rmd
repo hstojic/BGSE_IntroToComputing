@@ -1,0 +1,382 @@
+---
+title: "Optimization with gradient descent in R"
+author: "Hrvoje Stojic"
+date: "September 15, 2017"
+output: 
+  html_document:
+    theme: united
+    highlight: kate
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+
+# cleaning before starting
+rm(list = ls())
+
+# loading in required packages
+library(knitr)
+library(rmarkdown)
+library(ggplot2)
+
+# some useful global defaults
+opts_chunk$set(warning=FALSE, message=FALSE, include=TRUE, echo=TRUE, 
+               cache=TRUE, cache.comments=FALSE, comment='##',
+               results="hold")
+
+# output specific defaults
+output <- opts_knit$get("rmarkdown.pandoc.to")
+if (output=="html") opts_chunk$set(fig.width=10, fig.height=5)
+if (output=="latex") opts_chunk$set(fig.width=6,  fig.height=4, 
+    dev = 'cairo_pdf', dev.args=list(family="Arial"))
+
+# set the path if using interactively
+# setwd("/home/hstojic/Teaching/BGSE_DS_ITC_2017/solutions/Rstats")
+
+# you can use this command to compile the document
+# Rstudio has a convenient button that executes this command
+# rmarkdown::render("gradientdescent.Rmd", "html_document", clean=TRUE)
+
+# set some parameters
+fontSetup <- "Helvetica"
+fontSize <- 10
+
+```
+
+
+
+# Generating the data
+
+We will make use of the function for generating artifical data we have developed in the previous exercise.
+
+```{r rlinmod, echo = FALSE}
+
+rlinmod <- function(n, w, sd, dist = runif) {
+    
+	# how many features?
+	m <- length(w)
+
+    # lets draw observations for x from a distribution given by the argument
+    x <- matrix(dist(n*(m-1)), ncol = (m-1), nrow = n)
+
+    # and then generate y as a function of x and some optional error
+    # a linear model of the form: y = Xw
+    # use matrix multiplication operator    
+    y <- cbind(1, x) %*% w + rnorm(n, mean = 0, sd = sd)
+
+    # put x and y in a dataframe
+    data <- data.frame(y, x)
+
+    # rename all the x variables so that they have the following format:
+    # x1, x2, ... xm
+    names(data)[2:m] <- paste0("x", 1:(m-1))
+
+    return (data)
+}
+
+```
+
+We will now generate some data for training the model.
+
+```{r trainData}
+
+set.seed(1234)
+trainData <- rlinmod(200, c(5, 3, -2), 2)
+head(trainData)
+
+```
+
+
+# Analytical solution
+
+Recall our problem, searching for values of the $\beta$ vector that solves the the following linear regression model
+
+$$ y_i = x_i  \beta + \epsilon_i, i = 1, ..., n$$
+
+where $\beta \in R^m$. We assume usual things, like $\epsilon_i$ is a zero mean and $\sigma_{\epsilon}^2$ variance error term is uncorrelated with $x_i$. 
+
+The least squares estimator has a closed form solution 
+
+$$\hat{\beta} = (X^T X)^{-1} X^T y.$$
+
+We will first establish the analytical solution for our data, using the `lm` function.
+
+
+```{r analytical}
+
+# use the "lm" function to fit the linear model
+lmfit <- lm(y ~ ., data = trainData) 
+
+# check the coefficients
+lmfit
+
+```
+
+
+# Gradient descent
+
+Gradient descent is a simple method for numerical optimization, similar to some of the methods you can use with `optim()` function, but here we will explicitly program it. It is an alternative to analytical solutions that cannot be always employed. For example, data might be too big, which means that inverting the matrix $X^T X$ would be too costly.
+
+More precisely, gradient descent is an iterative method that updates the parameters in each iteration for the amount of the gradient mutliplied by a learning rate, $\alpha$
+
+$$ w_{i+1} = w_i - \alpha \bigtriangledown F(w_i)$$
+
+where $i$ is iteration, $w$ is a vector of parameters and $\bigtriangledown F(w_i)$ is the gradient of the objective function $F$, that is, a derivative of our objective function with respect to the parameters. In our case this will be easy as we have a simple linear model and sum of squared errors
+
+$$ \bigtriangledown F(w_i) = \frac{1}{N} \sum_{n=1}^N (y_n - \hat{y}_n)x_n $$
+
+where $n$ is now observation, $N$ total number of observations, $y$ is true value of dependent variable, while $\hat{y}$ is the predicted value of dependent variable and $x$ is a vector of features. Hence, what we do in each iteration is that we go through the whole dataset computing these gradients, and then update the parameters for their value multiplied with the learning rate. 
+
+Learning rate can modify the behavior of the algorithm a lot - if it is too big the algorithm will not converge. In practice you first try small number of iterations with some learning rate and monitor what happens with your objective function. Start with high learning rate and decrease it until you get decreasing values of objective function, and then you can do a full run of the algorithm with many iterations.
+
+Check the [Wikipedia](https://en.wikipedia.org/wiki/Gradient_descent) entry for more details, it has a nice description of the method.
+
+
+## Define a model
+
+Here we define our model, predictions that the model makes given some data $X$ and some parameters $w$. We will use a simple linear model
+
+$$\hat{y} = X \hat{w}.$$
+
+The model could be far more complex of course (e.g. a neural network with many layers).
+
+
+```{r model}
+
+# define a function with arguments X and w, that produces predictions as an
+# output, according to our simple linear model above
+linmodel <- YOUR-CODE
+
+# initialize randomly a set of parameters 
+set.seed(1234)
+(wrand <- rnorm(3))
+
+# check the model
+X <- cbind(1, as.matrix(trainData[, 2:3]))
+predictions <- linmodel(X, wrand)
+head(predictions)
+
+# output should be
+#            [,1]
+# [1,] -0.4589716
+# [2,] -0.4614470
+# [3,] -0.6937317
+# [4,] -0.2014280
+# [5,] -0.3974720
+# [6,] -0.2352865
+
+```
+
+
+## Define an objective or cost function
+
+Define the objective or cost function - sum of squared errors (SSE). We will monitor the value of this cost function while executing gradient descent to verify that everything is OK. 
+
+$$ SSE =  (y - X\hat{w})^T (y - X\hat{w})$$
+
+
+```{r SSE}
+
+SSE <- function(w, data, model) {
+
+    # number of features
+    YOUR-CODE
+
+    # extract features into a matrix X, include the intercept
+    # and extract the response variable 
+    YOUR-CODE
+
+    # Compute model predictions, using the "linmodel" function
+    # passed by the "model" argument
+   YOUR-CODE
+
+    # Compute the sum of squared errors between the predictions coming
+    # from the model and true values (y)
+    SSE <- YOUR-CODE
+
+    return(SSE)
+}
+
+# What is the value of the objective function for our randomly initiated
+# parameters?
+(randomSSEvalue <- SSE(wrand, trainData, linmodel))
+
+# output should be
+# [1] 8420.061
+
+```
+
+
+## Defining a gradient function
+
+This is the key ingredient to the gradient descent. For simple models we can derive gradients and write them down. In many instances however, deriving gradients is very difficult and numeric methods are used to derive them (e.g. in Tensorflow). For our model the gradient is
+
+$$ \bigtriangledown F(w_i) = \frac{1}{N} \sum_{n=1}^N (y_n - \hat{y}_n)x_n $$
+
+where $n$ is now observation, $N$ total number of observations, $y$ is true value of dependent variable, while $\hat{y}$ is the predicted value of dependent variable and $x$ is a vector of features.
+
+
+```{r gradient}
+
+grad <- function(data, w, model){
+
+    # number of features
+    YOUR-CODE
+
+    # extract features into a matrix X, include the intercept
+    # and extract the response variable 
+   YOUR-CODE
+
+    # Compute model predictions, using the "linmodel" function
+    # passed by the "model" argument
+    YOUR-CODE
+
+    # Compute the gradient
+    res <- YOUR-CODE
+
+    return(res)
+} 
+
+# What is the value of the gradient for our randomly initiated
+# parameters?
+(gradRand <- grad(trainData, wrand, linmodel))
+
+# output should be
+#                  x1        x2 
+# -6.094402 -3.137010 -2.931592 
+
+```
+
+
+## The algorithm
+
+We finally come to the algorithm itself.
+
+
+```{r gradientDescent, echo = TRUE, error = TRUE}
+
+# Arguments to the function:
+# winit = vector, intitial values of weights / parameters we are optimizing
+# objective = function, we pass objective or cost function
+# gradient = function, we pass the gradient function
+# model = function, we pass the model function that computes the predictions
+# alpha = scalar, learning rate
+# data = data frame, y column and x1, ... , xm columns
+# maxiter = scalar, maximum number of iterations the algorithm will iterate
+# tolerance = scalar, if change in weights < tolerance, stop the algorithm
+# diagnostics = logical value, plotting the cost function evolution
+# verbose = logical value, printing out info
+
+gradientDescent <- function(
+    winit, 
+    objective = SSE, 
+    gradient = grad, 
+    model = linmodel,
+    alpha, 
+    data,
+    maxiter = 20000, 
+    tolerance,
+    diagnostics = TRUE, 
+    verbose = TRUE
+    ) {
+    
+    # empty frames where we store the values of parameters in each iteration
+    # and value of our cost / objective function (SSE)
+    witer <- matrix(NA, maxiter, length(winit))
+    witer[1,] <- winit
+    cost <- rep(NA, maxiter)  
+
+    # We are doing a number of iterations, in each one updating the 
+    # weights according to the gradient information in the current iteration
+    for(iter in YOUR-CODE) {
+
+        # if verbose == TRUE, we count number of iterations
+        if (verbose) {
+            if (iter %% 100 == 0) print(iter)
+        }
+
+        # Update the parameters with respect to the gradient and learning rate
+        witer[iter,] <- YOUR-CODE
+        
+        # Compute cost (value of SSE for current set of weights)
+        cost[iter] <- YOUR-CODE
+
+        # stop the algorithm if convergence tolerance crossed, that is,
+        # if sum of squared differences between weights in the current 
+        # iteration and previous iteration
+        YOUR-CODE
+    }
+
+    # Create a diagnostic plot for the last 500 points in the cost vector
+    # with iterations on x-axis and SSE cost on y-axis
+    # Plot is printed only if instructed (argument "diagnostics"), 
+    YOUR-CODE
+
+    return(
+        list(
+            w = witer[1:iter,], 
+            value = cost[1:iter], 
+            iter = iter
+        )
+    )
+}
+
+```
+
+Let us now try out the gradient descent algorithm and compare it with the analytical solution. We will need to find a good learning rate first, so first runs should be small, with few iterations. We will use diagnostic plots  which illustrate the behavior of the objective function. For example, if you don't see a decrease most likely your learning rate is too high; if you see errors that also means learning rate is too high as your parameters exploded, they became too big to numerically handle them.
+
+```{r learningRate}
+
+# exploding value of the objective function
+alpha <- 3
+maxiter <- 1000
+tolerance <- 1e-9
+winit <- rep(0, 3)
+optimGD <- 
+    gradientDescent(
+        winit, objective = SSE, gradient = grad, model = linmodel, alpha, 
+        data = trainData, maxiter, tolerance
+    )
+
+# increasing or erratic value of the objective function
+alpha <- 1.35
+optimGD <- 
+    gradientDescent(
+        winit, objective = SSE, gradient = grad, model = linmodel, alpha, 
+        data = trainData, maxiter, tolerance
+    )
+
+
+# good learning rate
+alpha <- .05
+optimGD <- 
+    gradientDescent(
+        winit, objective = SSE, gradient = grad, model = linmodel, alpha, 
+        data = trainData, maxiter, tolerance
+    )
+
+# but no convergence yet
+wGD <- optimGD$w[optimGD$iter,]
+cbind(coefficients(lmfit), wGD)
+
+# so lets run the same thing but with a lot more iterations
+alpha <- .05
+maxiter <- 25000
+optimGD <- 
+    gradientDescent(
+        winit, objective = SSE, gradient = grad, model = linmodel, alpha, 
+        data = trainData, maxiter, tolerance, verbose = FALSE
+    )
+
+# compare parameters obtained by GLM function and GD
+wGD <- optimGD$w[optimGD$iter,]
+cbind(coefficients(lmfit), wGD)
+
+```
+
+In practice **stochastic** gradient descent is used much more, especially with the very big data and deep neural networks, as it does not go through all the data in each iteration. It takes more time to get close to minimum and it usually oscillates around it, it never converges.
+
+
+
+

@@ -1,7 +1,7 @@
 # Exercise
 
 Folder content:
-- linearmodels.R 
+- linearmodels.Rmd 
 - README.md
 
 
@@ -16,6 +16,8 @@ You will do this exercise by using Rmarkdown, a format developed by Rstudio deve
 
 In all files you will find more detailed comments and instructions, spots where you are expected to do something and insert some code will be marked as: YOUR-CODE. Recall to save your changes with the git version control system, after you are done with a chunk of code.
 
-1. Complete the file `linearmodels.Rmd`.  
+1. Complete the file `linearmodels.Rmd`. 
+2. Complete the file `gradientdescnet.Rmd`.  
+
 
 
