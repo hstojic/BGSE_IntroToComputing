@@ -124,7 +124,7 @@ $$ w_{i+1} = w_i - \alpha \bigtriangledown F(w_i)$$
 
 where $i$ is iteration, $w$ is a vector of parameters and $\bigtriangledown F(w_i)$ is the gradient of the objective function $F$, that is, a derivative of our objective function with respect to the parameters. In our case this will be easy as we have a simple linear model and sum of squared errors
 
-$$ \bigtriangledown F(w_i) = \frac{1}{N} \sum_{n=1}^N (y_n - \hat{y}_n)x_n $$
+$$ \bigtriangledown F(w_i) = \frac{1}{N} \sum_{n=1}^N (\hat{y}_n - y_n)x_n $$
 
 where $n$ is now observation, $N$ total number of observations, $y$ is true value of dependent variable, while $\hat{y}$ is the predicted value of dependent variable and $x$ is a vector of features. Hence, what we do in each iteration is that we go through the whole dataset computing these gradients, and then update the parameters for their value multiplied with the learning rate. 
 
@@ -212,7 +212,7 @@ SSE <- function(w, data, model) {
 
 This is the key ingredient to the gradient descent. For simple models we can derive gradients and write them down. In many instances however, deriving gradients is very difficult and numeric methods are used to derive them (e.g. in Tensorflow). For our model the gradient is
 
-$$ \bigtriangledown F(w_i) = \frac{1}{N} \sum_{n=1}^N (y_n - \hat{y}_n)x_n $$
+$$ \bigtriangledown F(w_i) = \frac{1}{N} \sum_{n=1}^N (\hat{y}_n - y_n)x_n $$
 
 where $n$ is now observation, $N$ total number of observations, $y$ is true value of dependent variable, while $\hat{y}$ is the predicted value of dependent variable and $x$ is a vector of features.
 

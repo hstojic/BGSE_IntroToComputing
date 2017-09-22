@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "Linear models in R"
 author: "Hrvoje Stojic"
 date: "September 15, 2017"
 output: 
@@ -295,7 +295,7 @@ coefficients(lmfit)
 
 We will now create a plot where we additionally illustrate our predictions.
 
-```{r scatterplot_fit, echo=FALSE}
+```{r scatterplot_fit}
 
 # first create an additional data frame with x1 variable from trainData as one
 # column and predictions from the model, yhat, as a second model
@@ -303,7 +303,7 @@ predData <- YOUR-CODE
 
 # generate the figure
 figure <- 
-    ggplot(data, aes(y = y, x = x1)) + 
+    ggplot(trainData, aes(y = y, x = x1)) + 
     geom_point(size = 1.5, color = "#992121") +
 
     # you will need to use geom_line, but now with
